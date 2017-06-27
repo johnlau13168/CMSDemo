@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<head>
+
+
+<style>
+.targetDiv {
+    background-color: light-grey;
+    width: 400px;
+}
+
+.csshdr {
+    font-weight:bolder;
+    font-size:14px;
+	color:black;
+}
+.cssval {
+    border: 1px solid black;
+    width:200px;
+    text-align:left;
+}
+
+table {
+   	width: 770px;
+}
+
+
+.inner {
+    width: 100%;
+    height: 100%;
+
+}
+.inner1 {
+    width: 50%;
+	text-align:left;
+}
+
+input {
+    width: 100%;    height: 100%;
+    background-color:  transparent; 
+	border-style: none; 
+	border-width: 0px 0px 1px 0px; 
+    font-family: Verdana,Arial,Helvetica,sans-serif;
+    font-size: 12px;
+}
+
+
+</style>
+<title>Drag and drop UI to build custom HTML</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+<script src="./jquery-1.11.1.min.js"></script>
+<link rel="stylesheet" href="./jquery-ui.min.css" />
+<script src="./jquery-ui.min.js"></script>
+<script type="text/javascript" src="./knockout-3.2.0.js"></script>
+
+   
+ <style type='text/css'>
+ 
+.container {
+	width:90%;
+	height:90%;
+	margin:50px auto;
+	position: relative;
+	float: left;
+}
+
+.list {
+	width:120px;
+	margin-left:10px;
+	height:250px;
+	float: left;
+	background:white
+}
+
+#rightpane {
+           /* top: 50px;*/
+			width:650px;
+			height:250px;
+			background:#ccc;
+			border:1px solid #424242;
+			float:left;
+			left:130px;
+			top:200px;
+			position: absolute;
+}
+
+#debug {
+    width:200px;
+	background:white;
+}
+ 
+#main {
+    position: relative;
+}
+
+
+
+.item {
+    margin:0 10px 0 0;
+    width:100px;
+	height:30px;
+	background:white;
+	border:1px solid #424242;
+	color: black;
+	font-weight:bold;
+	text-align:right;
+	line-height:30px;
+	cursor:pointer;
+	position: relative;
+}
+    
+
+.inner {
+    position: relative;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow:hidden;
+}
+    
+</style>
+
+
+
+
+<script type="text/javascript">
+
+var storage = window.localStorage;
+var requesttypevm = null;
+
+var bindingdone_label = 0;
+var bindingdone_textbox = 0;
+
+var labelprop = function(name) {
+	var self = this;
+	self.name = ko.observable(name);
+};
+var labelpropx = new labelprop("");
+
+
+var textboxprop = function(name) {
+	var self = this;
+	self.name = ko.observable(name);
+	self.val  = ko.observable();
+	self.setval = function(valx) {
+		 self.textboxval(valx);
+	}
+};
+
+
+var textboxpropx = new textboxprop("");
+var activeuiid;
+
+
+function showHTML() {
+	var htmlstr = $("#rightpane").html();
+	alert("See below for generated HTML:   " + "\n\n" + htmlstr);
+}
+
+function saveHTML() {
+	var htmlstr = $("#rightpane").html();
+	storage.setItem("key1", htmlstr);
+}
+ 
+//to be done: load from external file 
+function loadHTML() {
+	var temphtmlstr = storage.getItem("key1");
+	$("#rightpane").html(temphtmlstr);
+} 
+
+function delUIx() {
+	if(prevID!="") {
+	    ko.cleanNode($("#" + prevID +"x")[0]);
+		$("#" + prevID).remove();
+	}
+} 
+
+
+function showuiproperties(uix) {
+	$('.targetDiv').hide();
+	//show hidden properties section at the bottom page
+	$("#" + uix + "-prop").show();
+}
+
+var prevID = "";
+
+// hightlight selected element with blue border for further action (e.g. delete)
+$(function() {
+    $("#rightpane").on("click",".ui-selectable", function(evt) {
+
+   	if(prevID!="") {$("#" + prevID).css('border', ' black 1px solid');}
+    // e.g. return label1  
+    var idx = this.id;
+    
+    //save the inner element ID for later use
+     activeuiid = idx + "x";
+     
+    var tempuitype = idx.split('-')[0];
+    
+   showuiproperties(tempuitype);
+    
+    if(tempuitype="label") {     
+        //set activeid value to label name
+        $("#" + tempuitype + "init").val($("#" + activeuiid).val());
+    }
+
+    if(tempuitype="textbox") {     
+        //set activeid value to label name
+
+        $("#" + tempuitype + "init2").val($("#" + activeuiid).val());
+
+        var tempx = $("#" + activeuiid).attr("data-bind");
+        if(tempx!=undefined) {
+        	var fieldname = tempx.split('.')[1];
+        	 $("#" + tempuitype + "init1").val(fieldname);
+        }
+    }
+    
+    
+    //set the outer div border color 
+    $("#" + idx).css('border', 'orange 2px solid');
+    prevID = idx;
+    $("#menux").attr("style","display:block");
+    $("#menux > div").trigger("mouseenter");
+    });
+    
+    //update the active ui on the rightpane based on the screen bottom section inputs  
+    $("#labelinit").on("change", function(evt) {
+       $("#" + activeuiid).val($("#labelinit").val());
+       $("#" + activeuiid).attr("value", $(this).val());
+    });   
+    
+    $("#textboxinit2").on("change", function(evt) {
+    	var fieldvalue = $("#textboxinit2").val();
+        $("#" + activeuiid).attr("valinit", fieldvalue);
+        $("#" + activeuiid).val(fieldvalue);
+     });   
+    
+    
+    $("#textboxinit1").on("change", function(evt) {
+        var fieldname =  $("#textboxinit1").val();
+        var databindstr= "value: addnew_vm." + fieldname;
+        $("#" + activeuiid).attr("data-bind", databindstr);
+     }); 
+    
+}); 
+
+
+var savedidnum; 
+
+// For list of element id with same prefix, generate next id with highest id no))
+function gennextid(tidprefix) { 
+	   var d = new Date();
+	   var n = d.valueOf();
+	   savedidnum = n;
+	return   tidprefix + "-" + parseInt(n);
+};    
+
+
+$(function()  {
+	$.getScript("./RequestTypeVM.js />");
+	
+	$("ul#uilist li div").on("mouseover", function(){
+		  $("#showx").html("test ");
+	});
+
+    
+    //loop thru each UI on the left pane 
+    var draggableSelector = ".list .item:not(.dropped)";
+
+    //var draggingUI;
+    var init = function() {  
+        $(draggableSelector).each(function(i){
+            $(this).draggable({
+                    helper: 'clone',
+                    containment: '#rightpane',
+                    grid: [15, 10],
+                    revert: false,
+                    tolerance: 'fit',
+                     });
+        });
+
+        $('#rightpane').droppable({
+            accept: '.item',
+            drop: function(event,ui) {
+            	var factorx;
+           	    var x;
+            	var temptokens = $(ui.draggable).attr('id').split('-');
+            	//if this dragged ui is from left pane (i.e. not from droppable area) 
+            	if(temptokens[1]=='0') {
+            		var newidx = gennextid(temptokens[0]);
+            		x = ui.helper.clone();     //use clone for dropping ui.helper.remove();  
+            		x.attr("id", newidx);
+                    factorx = 2;
+            	} else {
+                     x = $(ui.draggable);
+                     factorx = 1;
+            	};
+            	idx = x.attr("id");
+
+            	// uitype = label or textbox etc...
+            	uitype = idx.split('-')[0];
+            	
+	            x.draggable({
+	                     helper: 'original',
+	                     containment: '#rightpane',
+	                     grid: [15, 10],
+	                     tolerance: 'fit',
+	                 });
+	            
+                 $(this).append(x);
+                 x.resizable().selectable()
+                 
+                 
+                 var droppedObjPos = x.offset();
+                 var rightPanePos = $("#rightpane").offset();
+
+                 var newtop = Math.round(droppedObjPos.top -factorx*rightPanePos.top);
+                 var newleft = Math.round(droppedObjPos.left -factorx*rightPanePos.left);
+                 x.css({top: newtop, left: newleft, position:'absolute'});
+                  showuiproperties(uitype);
+                 //add set inner element ID = outer div ID + suffix 'x' 
+                 if(uitype=="label") {
+     	            	  $("#" + idx).find('.inner1').attr('id', idx + "x");
+    	                 labelpropx.name("");
+                         if(bindingdone_label==0) { 
+         	                //labelpropx = new labelprop("");
+     	            	 	ko.applyBindings(labelpropx,document.getElementById('labelinit'));
+     	            	 	bindingdone_label = 1;
+                         } 
+                         activeuiid = idx + "x";
+                         $( "#" + activeuiid).trigger("click");
+                 } else 
+                 if(uitype=="textbox") { 
+	            	  $("#" + idx).find('.inner1').attr('id', idx + "x");
+  	                 textboxpropx.name("");
+  	                 textboxpropx.val("");
+                      if(bindingdone_textbox==0) { 
+  	            	 	ko.applyBindings(textboxpropx,document.getElementById('textboxinit1'));
+  	            	 	ko.applyBindings(textboxpropx,document.getElementById('textboxinit2'));
+  	            	 	bindingdone_textbox = 1;
+                      } 
+                      activeuiid = idx + "x";
+                      $( "#" + activeuiid).trigger("click");
+                 }
+		    }
+        });                
+    };
+
+    init();
+});
+
+
+
+</script>
+</head>
+<body>
+<div>
+
+Steps:
+<ol>
+<li> Drag and drop label or textbox from the left to the right pane. Repeat step (1) if needed. (Note: Move mouse pointer inside the left half of label or textbox to select and drag)
+<li> Click to select any element (Orange border will be shown in selected element) on the right pane to resize or move or enter related properties <br>
+     on the bottom area or hit "Remove selected UI" button to remove the element.<br> 
+     (a) Enter label name for dropped label. <br>
+     (b) Enter field name  & field value for dropped textbox.
+<li> Click "Show HTML" button to see the generated HTML. 
+<li> Hit Save HTML locally to save current HTML. Then select element and hit Remove selected UI repeatedly to remove all elements and hit Reload the last saved HTML to reload.
+</ol>
+
+</div>
+
+<table class="page-container">
+	<tr>
+	<td width="100%" vAlign="top">
+	<table style="width: 100%; border: 0px; border-spacing: 0px; border-collapse: collapse">
+
+			
+			<tr>
+			<td colspan="4" style="vertical-align: text-top;">
+				<div id="container">
+				   <div  class="list" >
+				   <table>
+				    <tr>
+				    <td>
+					        <ul id="uilist" style="list-style-type: none;padding-left:0;">
+					        <!--  make input textbox resize when div is resizing  -->
+					        
+							<li>Label<div class="item" id="label-0"  ><div class="inner"><input readonly class="inner1" name=""   valtype="constant"   type="text" id="dummy" /></div></div></li>
+							<li>Textbox<div class="item" id="textbox-0"><div class="inner"><input readonly class="inner1" name=""   valtype="num"        type="text" id="dummy" /></div></div></li>
+	
+					   	    </ul>
+				     </td>
+				     </tr>
+				   </table>    
+				   </div>    
+				   <div class="rightpane" id="rightpane"></div>
+				</div>
+		   </td>
+		   </tr>
+		   <tr><td><pre>
+
+
+                   </pre></td></tr>
+		   
+		   <tr>
+		        <td>
+  <div id="menux" style="display: none;">
+						
+		<div><span>Please fill in below for the selected element</span></p>					
+		<div id="label-prop" class="targetDiv">
+		     <table style="background-color:grey;">
+		        <tr>
+		         <td width="30%"><span class="csshdr">Label Name:<span  class="csshdr"></td>
+		         <td>
+		  		    <input class="cssval" id="labelinit" type="text" data-bind="value: labelpropx.name" />
+	  			 </td>
+	  			</tr>   
+			  </table>
+		</div>
+		
+		<div id="textbox-prop"  class="targetDiv">
+		     <table id="uiproperties" style="background-color:grey;">
+		        <tr>
+		         <td width="30%"><span class="csshdr">Field Name:</span></td>
+		         <td>
+		  		    <input class="cssval" id="textboxinit1" type="text" data-bind="value: textboxpropx.name" />
+	  			 </td>
+	  			</tr>   
+	  			<tr>
+		         <td width="30%"><span class="csshdr">Field Value: (Default Value) </span></td>
+		         <td>
+		  		    <input class="cssval" id="textboxinit2" type="text" data-bind="value: textboxpropx.val" />
+	  			 </td>
+	  			</tr>  
+			 </table>
+		</div>
+		<div id="textarea-prop" class="targetDiv">
+		     textarea properties go here
+		</div>							
+		<div id="listbox-prop"  class="targetDiv">
+		     other UI properties go here
+		</div>
+</div>
+	  			</td>
+	  			<td width="16%"></td>
+	  		</tr>
+		   <tr>	
+
+		   <td> 
+				<div id="debug">
+					<table>
+					<tr>
+					<td><button onclick="showHTML()">Show HTML</button></td>
+					<td><button onclick="saveHTML()">Save HTML locally <br>(For Firefox or Chrome)</button></td>
+					<td><button onclick="loadHTML()">Reload the last saved HTML<br>(For Firefox or Chrome)</button></td>
+					<td><button onclick="delUIx()">Remove selected UI</button></td>
+					</tr>
+					</table>
+				</div>
+	        </td>
+	        </tr>
+	
+
+			</table>
+		</td>
+	</tr>
+</table>
+
+
+
+</body>
+
+
+</html>
